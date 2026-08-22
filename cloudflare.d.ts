@@ -1,7 +1,10 @@
 interface D1Result<T = unknown> {
   results?: T[];
   success: boolean;
-  meta?: Record<string, unknown>;
+  meta: {
+    changes: number;
+    [key: string]: unknown;
+  };
 }
 
 interface D1PreparedStatement {
