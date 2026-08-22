@@ -1,4 +1,4 @@
-import { ensureSchema, getD1, sha256 } from "@/app/lib/database";
+import { createAccessCode, sha256 } from "@/app/lib/database";
 import { authError, requireFirebaseIdentity } from "@/app/lib/server-auth";
 
 const validScopes = ["planComplete", "smartSheets", "assessmentPack", "themedCalendar"];
@@ -17,13 +17,8 @@ export async function POST(request: Request) {
     const body = (await request.json()) as { scopes?: string[]; label?: string };
     const scopes = Array.from(new Set(body.scopes || [])).filter((scope) => validScopes.includes(scope));
     if (!scopes.length) return Response.json({ error: "SELECT_SCOPE" }, { status: 400 });
-
-    const db = getD1();
-    await ensureSchema(db);
     const code = makeCode();
-    await db.prepare("INSERT INTO access_codes (code_hash, label, scopes_json, created_at) VALUES (?, ?, ?, ?)")
-      .bind(await sha256(code), body.label?.trim() || "Código de acesso", JSON.stringify(scopes), new Date().toISOString())
-      .run();
+    await createAccessCode(await sha256(code), body.label?.trim() || "Código de acesso", scopes);
     return Response.json({ code, scopes });
   } catch (error) {
     return authError(error);
